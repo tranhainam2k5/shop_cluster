@@ -216,38 +216,78 @@ print("✓ Clustering completed")
 print(clustered_df["cluster"].value_counts())
 
 
+
 # ============================================================
-# 7. PCA & VISUALIZATION
+# 7. PCA VISUALIZATION
 # ============================================================
+print("\n🔹 7. PCA & Visualization (Top-N Rule Features)...")
 
-print("\n🔹 7. PCA & Visualization...")
+TOP_N_RULES = 50
+MAX_PCA_SAMPLES = 2000
 
-pca = PCA(n_components=2, random_state=42)
-X_pca = pca.fit_transform(X)
+rules_df["rule_weight"] = rules_df["lift"] * rules_df["confidence"]
+top_rule_indices = rules_df.nlargest(TOP_N_RULES, "rule_weight").index
+selected_rule_cols = [f"Rule_{i}" for i in top_rule_indices]
+X_selected = X[selected_rule_cols].fillna(0)
 
-pca_df = pd.DataFrame(
-    X_pca,
-    columns=["PC1", "PC2"],
-    index=X.index
-)
-pca_df["cluster"] = cluster_labels
+print(f"✓ Selected top {TOP_N_RULES} rule-features")
 
-plt.figure(figsize=(8, 6))
-for c in sorted(pca_df["cluster"].unique()):
-    subset = pca_df[pca_df["cluster"] == c]
+# Sample
+if len(X_selected) > MAX_PCA_SAMPLES:
+    sample_indices = X_selected.sample(n=MAX_PCA_SAMPLES, random_state=42).index
+    X_pca_input = X_selected.loc[sample_indices]
+    cluster_pca_labels = clustered_df.loc[sample_indices, "cluster"]
+else:
+    X_pca_input = X_selected
+    cluster_pca_labels = cluster_labels
+
+# PCA
+from sklearn.decomposition import PCA
+pca = PCA(n_components=2, random_state=42, svd_solver='randomized')
+print("⏳ Running PCA...")
+X_pca = pca.fit_transform(X_pca_input)
+print(f"✓ PCA completed. Explained variance: {pca.explained_variance_ratio_.sum():.2%}")
+
+# DataFrame
+pca_df = pd.DataFrame(X_pca, columns=["PC1", "PC2"])
+pca_df["cluster"] = cluster_pca_labels.values
+
+# ---- PLOT ----
+plt.figure(figsize=(10, 7))
+
+unique_clusters = sorted(pca_df["cluster"].unique())
+colors = plt.cm.tab10(range(len(unique_clusters)))
+
+for idx, c in enumerate(unique_clusters):
+    mask = pca_df["cluster"] == c
     plt.scatter(
-        subset["PC1"],
-        subset["PC2"],
+        pca_df.loc[mask, "PC1"],
+        pca_df.loc[mask, "PC2"],
         label=f"Cluster {c}",
-        alpha=0.7
+        alpha=0.7,
+        s=30,
+        c=[colors[idx]],
+        edgecolors='white',
+        linewidth=0.5
     )
 
-plt.title("PCA Visualization of Rule-Based Transaction Clusters")
-plt.xlabel("PC1")
-plt.ylabel("PC2")
-plt.legend()
-plt.grid(True)
-plt.show()
+plt.title(f"PCA Visualization (Top {TOP_N_RULES} Rules, Variance: {pca.explained_variance_ratio_.sum():.1%})", 
+          fontsize=14, fontweight='bold')
+plt.xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%})", fontsize=12)
+plt.ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%})", fontsize=12)
+plt.legend(title='Clusters', fontsize=10, markerscale=1.5)
+plt.grid(True, alpha=0.3, linestyle='--')
+plt.tight_layout()
+
+# Lưu file trước
+output_path = "data/processed/pca_visualization.png"
+plt.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
+print(f"✓ Plot saved to: {output_path}")
+
+# Hiển thị và GIỮ CỬA SỔ MỞ
+print("\n📊 Displaying plot... (Close window to continue)")
+plt.show()  # Block cho đến khi đóng cửa sổ
+
 
 # ============================================================
 # 8. CLUSTER PROFILING & MARKETING INSIGHT
@@ -344,6 +384,8 @@ def profile_clusters(
         summaries.append(summary)
 
     return summaries
+
+
 # =========================================================
 # 10. CLUSTER NAMING & MARKETING STRATEGY
 # =========================================================
@@ -382,3 +424,65 @@ def assign_marketing_strategy(cluster_profiles: list[dict]):
 
     return pd.DataFrame(strategies)
 
+
+# =========================================================
+# ⚡ THỰC THI CÁC HÀM (CODE MỚI THÊM VÀO)
+# =========================================================
+
+print("\n🔹 9. Running Cluster Profiling...")
+
+# Chuẩn bị data
+# Giả sử bạn có meta_df với RFM, nếu không thì tạo từ clustered_df
+if 'Recency' in clustered_df.columns:
+    meta_df = clustered_df[['Recency', 'Frequency', 'Monetary']].copy()
+else:
+    # Nếu không có RFM, tạo meta_df rỗng hoặc từ data gốc
+    print("⚠️ No RFM data found, creating basic meta_df")
+    meta_df = pd.DataFrame(index=clustered_df.index)
+
+# Gọi hàm profile_clusters
+try:
+    cluster_profiles = profile_clusters(
+        meta_df=meta_df,
+        labels=cluster_labels,
+        rule_features=X.values,  # hoặc X_selected.values nếu dùng top rules
+        rules_df=rules_df,
+        top_n_rules=10
+    )
+    
+    print("✓ Cluster profiling completed")
+    
+    # In kết quả
+    for profile in cluster_profiles:
+        print(f"\n📊 Cluster {profile['cluster']}:")
+        print(f"   Customers: {profile['n_customers']}")
+        if 'Recency_mean' in profile:
+            print(f"   Recency: {profile['Recency_mean']:.1f}")
+            print(f"   Frequency: {profile['Frequency_mean']:.1f}")
+            print(f"   Monetary: {profile['Monetary_mean']:.1f}")
+        print(f"   Top rules: {profile['top_rules'][:3]}")  # Hiển thị 3 rules đầu
+    
+except Exception as e:
+    print(f"❌ Error in profiling: {e}")
+    cluster_profiles = []
+
+print("\n🔹 10. Assigning Marketing Strategies...")
+
+# Gọi hàm assign_marketing_strategy
+if cluster_profiles:
+    try:
+        strategy_df = assign_marketing_strategy(cluster_profiles)
+        
+        print("✓ Marketing strategies assigned")
+        print("\n📊 Marketing Strategy Summary:")
+        print(strategy_df[['cluster', 'name_en', 'name_vi', 'strategy']])
+        
+        # Lưu kết quả
+        output_path = "data/processed/cluster_marketing_strategies.csv"
+        strategy_df.to_csv(output_path, index=False)
+        print(f"✓ Saved to: {output_path}")
+        
+    except Exception as e:
+        print(f"❌ Error in strategy assignment: {e}")
+else:
+    print("⚠️ No cluster profiles available, skipping strategy assignment")     

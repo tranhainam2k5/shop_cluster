@@ -111,10 +111,68 @@ Dựa trên mức độ kích hoạt các luật trong từng cụm:
 Kết quả phân cụm có thể làm nền tảng cho:
 -Thiết kế các chương trình bundle hoặc cross-sell
 -Phân tích sâu hơn ở mức khách hàng
-## 8. Kết luận
+## 8.Cluster Profiling & Marketing Insight
+
+Sau khi huấn luyện mô hình K-Means với số cụm tối ưu K = 2, nhóm tiến hành profiling từng cluster nhằm hiểu rõ đặc trưng hành vi mua sắm và làm cơ sở cho việc đề xuất chiến lược marketing.
+
+Dựa trên kết quả phân cụm, hai cluster có quy mô và đặc điểm như sau:
+
+Cluster	   Số giao dịch	         Nhận xét sơ bộ
+0	           674	                     Cụm nhỏ, hành vi mua kèm ít, tần suất kích hoạt luật thấp
+1	         17,347	                     Cụm lớn, chiếm đa số giao dịch, nhiều luật mua kèm được kích hoạt
+
+Để diễn giải cụm, nhóm phân tích các luật kết hợp được kích hoạt nhiều nhất trong từng cluster (rule-features có giá trị trung bình cao).
+
+Cluster 0
+
+Kích hoạt các luật liên quan đến sản phẩm phụ trợ và đơn hàng đơn lẻ
+
+Ít luật mua kèm mạnh, cho thấy hành vi mua không ổn định
+
+Cluster 1
+
+Kích hoạt nhiều luật mua kèm rõ ràng giữa các nhóm sản phẩm trang trí và quà tặng
+
+Thể hiện hành vi mua theo bộ và có xu hướng lặp lại
+## 9.Cluster Profiling (RFM-oriented)
+
+Trong quá trình phân tích, dataset không cung cấp đầy đủ thông tin để xây dựng các chỉ số Recency – Frequency – Monetary (RFM) ở cấp độ khách hàng.
+
+Do đó, nhóm không áp dụng RFM, mà tập trung vào profiling dựa trên:
+
+-Số lượng giao dịch trong từng cluster
+
+-Tần suất kích hoạt các luật kết hợp (rule-based features)
+
+Cách tiếp cận này vẫn đảm bảo phản ánh được:
+
+-Mức độ gắn kết của khách hàng với các sản phẩm
+
+-Hành vi mua kèm đặc trưng của từng cụm
+
+Việc không sử dụng RFM không ảnh hưởng đến tính hợp lệ của bài toán, vì trọng tâm của mini project là phân cụm dựa trên luật kết hợp và hành vi mua kèm.
+## 10.luster Naming & Marketing Strategy
+
+Dựa trên kết quả profiling, nhóm tiến hành:
+
+Đặt tên cho từng cluster (tiếng Anh & tiếng Việt)
+
+Mô tả persona ngắn gọn
+
+Đề xuất chiến lược marketing cụ thể, gắn với đặc trưng cụm
+
+Bảng tổng hợp chiến lược marketing theo cluster
+
+
+| Cluster | Tên (EN) | Tên (VI) | Persona | Chiến lược marketing |
+|--------|----------|----------|---------|----------------------|
+| 0 | Occasional Buyers | Khách mua không thường xuyên | Nhóm khách có số lượng giao dịch thấp, ít mua kèm, hành vi không ổn định | Khuyến mãi kích hoạt, email remarketing, ưu đãi theo thời điểm |
+| 1 | Occasional Buyers | Khách mua không thường xuyên | Nhóm khách chiếm đa số giao dịch, có xu hướng mua theo bộ sản phẩm | Cross-sell, bundle sản phẩm mua kèm, ưu đãi theo nhóm sản phẩm |
+## 11. Kết luận
 
 Mini Project đã:
 -Xây dựng thành công pipeline phân khúc dựa trên luật kết hợp
 -Chuyển hóa luật kết hợp thành đặc trưng hành vi có ý nghĩa
 -Thực hiện phân cụm với chất lượng tốt và có khả năng diễn giải
 -Kết quả cho thấy cách tiếp cận rule-based feature engineering là phù hợp cho bài toán phân tích hành vi mua hàng.
+
